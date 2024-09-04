@@ -4,18 +4,16 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
+
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 app.use(cors({
-  origin: 'http://localhost:5173', // Adjust as needed
+  origin: 'https://password-reset-vg.netlify.app', // Updated to your deployed frontend URL
 }));
-
-
-
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
@@ -38,7 +36,6 @@ app.post('/api/forgot-password', async (req, res) => {
   const { email } = req.body;
   const user = await User.findOne({ email });
   
-
   if (!user) {
     return res.status(404).json({ message: 'User not found Check the Credentials' });
   }
@@ -48,9 +45,7 @@ app.post('/api/forgot-password', async (req, res) => {
   user.resetTokenExpiry = Date.now() + 300000; // 5 min expiry
   await user.save();
 
-  
-
-  const resetLink = `http://localhost:5173/reset-password/${token}`;
+  const resetLink = `https://password-reset-vg.netlify.app/reset-password/${token}`; // Updated to your deployed frontend URL
   const transporter = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
@@ -63,14 +58,13 @@ app.post('/api/forgot-password', async (req, res) => {
     to: user.email,
     from: process.env.EMAIL_USER,
     subject: 'Password Reset',
-    text: `Please click on the following link, or paste this into your browser to reset your password:${resetLink}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.\n`,
+    text: `Please click on the following link, or paste this into your browser to reset your password: ${resetLink}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.\n`,
   };
 
   transporter.sendMail(mailOptions, (err, info) => {
     if (err) {
       console.error('Error sending email:', err);  // Log the actual error
       console.log('User Email:', user.email);     
-      
       return res.status(500).json({ message: 'Error sending email', error: err.message });
     }
     res.json({ message: 'Reset link sent to your email' });
@@ -105,15 +99,12 @@ app.post('/api/reset-password/:token', async (req, res) => {
     // Save the user with the updated password
     await user.save();
 
-    res.status(200).json({ message: 'Password reset successfull' });
+    res.status(200).json({ message: 'Password reset successful' });
   } catch (error) {
     console.error('Error resetting password:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-
-
-
 
 app.listen(process.env.PORT || 5000, () => {
   console.log('Server is running on port 5000');
