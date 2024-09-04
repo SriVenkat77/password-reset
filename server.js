@@ -11,7 +11,7 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(cors({
-  origin: 'http://localhost:5173', // Adjust as needed
+  origin: 'https://password-reset-vg.netlify.app', // Adjust as needed
 }));
 
 
@@ -50,7 +50,7 @@ app.post('/api/forgot-password', async (req, res) => {
 
   
 
-  const resetLink = `http://localhost:5173/reset-password/${token}`;
+  const resetLink = `https://password-reset-vg.netlify.app/reset-password/${token}`;
   const transporter = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
