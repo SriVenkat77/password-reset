@@ -12,7 +12,7 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(cors({
-  origin: 'https://password-reset-vg.netlify.app', // Updated to your deployed frontend URL
+  origin: 'http://localhost:5173', //  frontend URL
 }));
 
 // Connect to MongoDB
@@ -45,7 +45,7 @@ app.post('/api/forgot-password', async (req, res) => {
   user.resetTokenExpiry = Date.now() + 300000; // 5 min expiry
   await user.save();
 
-  const resetLink = `https://password-reset-vg.netlify.app/reset-password/${token}`; // Updated to your deployed frontend URL
+  const resetLink = `http://localhost:5173/reset-password/${token}`; //frontend URL
   const transporter = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
