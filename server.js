@@ -6,13 +6,14 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 
-
 dotenv.config();
 
 const app = express();
 app.use(express.json());
+
+// Use FRONTEND_URL from .env for CORS configuration
 app.use(cors({
-  origin: 'http://localhost:5173', //  frontend URL
+  origin: process.env.FRONTEND_URL, // Use frontend URL from environment variable
 }));
 
 // Connect to MongoDB
@@ -32,12 +33,11 @@ const User = mongoose.model('User', userSchema);
 
 // Route to initiate password reset
 app.post('/api/forgot-password', async (req, res) => {
-  console.log('Forgot Password route hit'); // Add this line
   const { email } = req.body;
   const user = await User.findOne({ email });
-  
+
   if (!user) {
-    return res.status(404).json({ message: 'User not found Check the Credentials' });
+    return res.status(404).json({ message: 'User not found. Check the Credentials' });
   }
 
   const token = crypto.randomBytes(32).toString('hex');
@@ -45,7 +45,7 @@ app.post('/api/forgot-password', async (req, res) => {
   user.resetTokenExpiry = Date.now() + 300000; // 5 min expiry
   await user.save();
 
-  const resetLink = `http://localhost:5173/reset-password/${token}`; //frontend URL
+  const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`; // Dynamic frontend URL
   const transporter = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
@@ -63,40 +63,33 @@ app.post('/api/forgot-password', async (req, res) => {
 
   transporter.sendMail(mailOptions, (err, info) => {
     if (err) {
-      console.error('Error sending email:', err);  // Log the actual error
-      console.log('User Email:', user.email);     
+      console.error('Error sending email:', err);
       return res.status(500).json({ message: 'Error sending email', error: err.message });
     }
     res.json({ message: 'Reset link sent to your email' });
   });
-  
 });
 
 // Route to handle resetting the password
 app.post('/api/reset-password/:token', async (req, res) => {
   try {
-    const { token } = req.params; // Extract the token from the URL
-    const { password } = req.body; // Extract the new password from the request body
+    const { token } = req.params;
+    const { password } = req.body;
 
-    // Find the user with the matching reset token and check that the token hasn't expired
     const user = await User.findOne({
       resetToken: token,
-      resetTokenExpiry: { $gt: Date.now() }, // Ensure the token is not expired
+      resetTokenExpiry: { $gt: Date.now() },
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired or Used token' });
+      return res.status(400).json({ message: 'Invalid or expired or used token' });
     }
 
-    // Hash the new password
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Update the user's password and clear the reset token fields
     user.password = hashedPassword;
     user.resetToken = undefined;
     user.resetTokenExpiry = undefined;
 
-    // Save the user with the updated password
     await user.save();
 
     res.status(200).json({ message: 'Password reset successful' });
@@ -106,6 +99,7 @@ app.post('/api/reset-password/:token', async (req, res) => {
   }
 });
 
+// Start the server
 app.listen(process.env.PORT || 5000, () => {
-  console.log('Server is running on port 5000');
+  console.log(`Server is running on port ${process.env.PORT || 5000}`);
 });
